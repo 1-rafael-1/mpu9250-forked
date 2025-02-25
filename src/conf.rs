@@ -572,12 +572,15 @@ impl MpuConfig<types::Dmp> {
                                             -> &mut Self {
         match self.dmp_configuration.as_mut() {
             Some(mut x) => x.features.gyro_auto_calibrate = feature,
-            None => self.dmp_configuration =
-                Some(DmpConfiguration { features:
-                                            DmpFeatures { gyro_auto_calibrate:
-                                                              feature,
-                                                          ..Default::default() },
-                                        ..Default::default() }),
+            None => {
+                self.dmp_configuration = Some(DmpConfiguration {
+                    features: DmpFeatures {
+                        gyro_auto_calibrate: feature,
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                })
+            },
         }
         self
     }

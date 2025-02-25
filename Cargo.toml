@@ -1,20 +1,26 @@
 [package]
-authors = ["Roma Sokolov", "Alexander Zhuravlev", "Jorge Aparicio <jorge@japaric.io>"]
+authors = [
+    "Roma Sokolov",
+    "Alexander Zhuravlev",
+    "Jorge Aparicio <jorge@japaric.io>",
+]
 name = "mpu9250"
-version = "0.25.0"
+version = "0.30.0"
 description = "no_std driver for the MPU9250 & onboard AK8963 (accelerometer + gyroscope +  magnetometer IMU)"
 keywords = ["arm", "cortex-m", "stm32", "hal"]
 license = "MIT OR Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/copterust/mpu9250"
+edition = "2024"
 
 [dependencies]
-embedded-hal = "0.2.3"
-bitflags = "1.0"
+# embedded-hal = "0.2.3"
+embedded-hal = "1.0.0"
+bitflags = "2.8.0"
 libm = { version = "0.2.1", optional = true }
 
 [dev-dependencies]
-linux-embedded-hal = "0.3"
+linux-embedded-hal = "0.4.0"
 
 [features]
 # Enable the I2C MPU interface. This disables the SPI interface. All function

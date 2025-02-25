@@ -1,11 +1,11 @@
-use ak8963::{self, AK8963};
+use crate::ak8963::{self, AK8963};
 
-use hal::blocking::delay::DelayMs;
-use hal::blocking::i2c;
-use hal::blocking::spi;
-use hal::digital::v2::OutputPin;
+use hal::delay::DelayNs;
+use hal::digital::OutputPin;
+use hal::i2c::{self, I2c, Operation as I2cOperation, SevenBitAddress};
+use hal::spi::{self, Operation as SpiOperation, SpiBus};
 
-use Register;
+use crate::Register;
 
 /// MPU's I2C address (AD0 low)
 const MPU_I2C_ADDR: u8 = 0x68;
@@ -71,8 +71,8 @@ pub struct SpiDevice<SPI, GPIO> {
     ncs: GPIO,
 }
 
-impl<SPI, NCS, E> SpiDevice<SPI, NCS>
-    where SPI: spi::Write<u8, Error = E> + spi::Transfer<u8, Error = E>,
+impl<SPI, NCS> SpiDevice<SPI, NCS>
+    where SPI: SpiBus<u8>,
           NCS: OutputPin
 {
     /// Create a new SpiDevice
@@ -82,8 +82,8 @@ impl<SPI, NCS, E> SpiDevice<SPI, NCS>
     }
 }
 
-impl<SPI, NCS, E> Releasable for SpiDevice<SPI, NCS>
-    where SPI: spi::Write<u8, Error = E> + spi::Transfer<u8, Error = E>,
+impl<SPI, NCS> Releasable for SpiDevice<SPI, NCS>
+    where SPI: SpiBus<u8>,
           NCS: OutputPin
 {
     type Released = (SPI, NCS);
@@ -110,11 +110,11 @@ impl<E, E2> core::convert::From<E> for SpiError<E, E2> {
     }
 }
 
-impl<SPI, NCS, E, EO> Device for SpiDevice<SPI, NCS>
-    where SPI: spi::Write<u8, Error = E> + spi::Transfer<u8, Error = E>,
+impl<SPI, NCS, EO> Device for SpiDevice<SPI, NCS>
+    where SPI: SpiBus<u8>,
           NCS: OutputPin<Error = EO>
 {
-    type Error = SpiError<E, EO>;
+    type Error = SpiError<SPI::Error, EO>;
 
     // Note: implementation is consistent with previous Mpu9250 private
     // methods. Using read and modify as default trait impls
@@ -125,7 +125,7 @@ impl<SPI, NCS, E, EO> Device for SpiDevice<SPI, NCS>
                  -> Result<(), Self::Error> {
         buffer[0] = reg.read_address();
         self.ncs.set_low().map_err(SpiError::NCSError)?;
-        self.spi.transfer(buffer)?;
+        self.spi.transfer_in_place(buffer)?;
         self.ncs.set_high().map_err(SpiError::NCSError)?;
 
         Ok(())
@@ -159,30 +159,28 @@ impl<SPI, NCS, E, EO> Device for SpiDevice<SPI, NCS>
     }
 }
 
-impl<SPI, NCS, E, EO> AK8963 for SpiDevice<SPI, NCS>
-    where SPI: spi::Write<u8, Error = E> + spi::Transfer<u8, Error = E>,
+impl<SPI, NCS, EO> AK8963 for SpiDevice<SPI, NCS>
+    where SPI: SpiBus<u8>,
           NCS: OutputPin<Error = EO>
 {
-    type Error = SpiError<E, EO>;
+    type Error = SpiError<SPI::Error, EO>;
 
-    fn init<D: DelayMs<u8>>(&mut self,
-                            delay: &mut D)
-                            -> Result<(), Self::Error> {
+    fn init<D: DelayNs>(&mut self, delay: &mut D) -> Result<(), Self::Error> {
         // Isolate the auxiliary master I2C bus (AUX_CL, AUX_DA)
         // disable the slave I2C bus, make serial interface SPI only
         // reset the master I2C bus
         Device::write(self, Register::USER_CTRL, 0x32)?;
-        delay.delay_ms(10);
+        delay.delay_ns(10 * 1_000_000);
         Ok(())
     }
 
-    fn finalize<D: DelayMs<u8>>(&mut self,
-                                delay: &mut D)
-                                -> Result<(), Self::Error> {
+    fn finalize<D: DelayNs>(&mut self,
+                            delay: &mut D)
+                            -> Result<(), Self::Error> {
         // set aux I2C frequency to 400 KHz (should be configurable?)
         Device::write(self, Register::I2C_MST_CTRL, 0x0d)?;
 
-        delay.delay_ms(10);
+        delay.delay_ns(10 * 1_000_000);
 
         // configure sampling of magnetometer
         Device::write(self,
@@ -193,7 +191,7 @@ impl<SPI, NCS, E, EO> AK8963 for SpiDevice<SPI, NCS>
                       ak8963::Register::XOUT_L.addr())?;
         Device::write(self, Register::I2C_SLV0_CTRL, 0x87)?;
 
-        delay.delay_ms(10);
+        delay.delay_ns(10 * 1_000_000);
         Ok(())
     }
 
@@ -258,10 +256,7 @@ pub struct I2cDevice<I2C> {
     i2c: I2C,
 }
 
-impl<E, I2C> I2cDevice<I2C>
-    where I2C: i2c::Read<Error = E>
-              + i2c::Write<Error = E>
-              + i2c::WriteRead<Error = E>
+impl<I2C> I2cDevice<I2C> where I2C: I2c<SevenBitAddress>
 {
     /// Create a new I2C device
     pub fn new(i2c: I2C) -> Self {
@@ -269,10 +264,7 @@ impl<E, I2C> I2cDevice<I2C>
     }
 }
 
-impl<E, I2C> Releasable for I2cDevice<I2C>
-    where I2C: i2c::Read<Error = E>
-              + i2c::Write<Error = E>
-              + i2c::WriteRead<Error = E>
+impl<I2C> Releasable for I2cDevice<I2C> where I2C: I2c<SevenBitAddress>
 {
     type Released = I2C;
 
@@ -281,18 +273,18 @@ impl<E, I2C> Releasable for I2cDevice<I2C>
     }
 }
 
-impl<E, I2C> Device for I2cDevice<I2C>
-    where I2C: i2c::Read<Error = E>
-              + i2c::Write<Error = E>
-              + i2c::WriteRead<Error = E>
+impl<I2C> Device for I2cDevice<I2C> where I2C: I2c<SevenBitAddress>
 {
-    type Error = I2CError<E>;
+    type Error = I2CError<I2C::Error>;
 
     fn read_many(&mut self,
                  reg: Register,
                  buffer: &mut [u8])
                  -> Result<(), Self::Error> {
-        self.i2c.write_read(MPU_I2C_ADDR, &[reg as u8], &mut buffer[1..])?;
+        let reg_addr = [reg as u8];
+        let mut operations = [I2cOperation::Write(&reg_addr),
+                              I2cOperation::Read(&mut buffer[1..])];
+        self.i2c.transaction(MPU_I2C_ADDR, &mut operations)?;
         Ok(())
     }
 
@@ -320,18 +312,13 @@ impl<E, I2C> Device for I2cDevice<I2C>
     }
 }
 
-impl<I2C, E> AK8963 for I2cDevice<I2C>
-    where I2C: i2c::Read<Error = E>
-              + i2c::Write<Error = E>
-              + i2c::WriteRead<Error = E>
+impl<I2C> AK8963 for I2cDevice<I2C> where I2C: I2c<SevenBitAddress>
 {
-    type Error = I2CError<E>;
+    type Error = I2CError<I2C::Error>;
 
-    fn init<D: DelayMs<u8>>(&mut self,
-                            delay: &mut D)
-                            -> Result<(), Self::Error> {
+    fn init<D: DelayNs>(&mut self, delay: &mut D) -> Result<(), Self::Error> {
         Device::write(self, Register::USER_CTRL, 0)?;
-        delay.delay_ms(10);
+        delay.delay_ns(10 * 1_000_000);
 
         const LATCH_INT_EN: u8 = 1 << 5;
         const INT_ANYRD_CLEAR: u8 = 1 << 4;
@@ -343,14 +330,17 @@ impl<I2C, E> AK8963 for I2cDevice<I2C>
                       | INT_ANYRD_CLEAR
                       | ACTL_ACTIVE_LOW
                       | BYPASS_EN)?;
-        delay.delay_ms(10);
+        delay.delay_ns(10 * 1_000_000);
 
         Ok(())
     }
 
     fn read(&mut self, reg: ak8963::Register) -> Result<u8, Self::Error> {
         let mut buffer = [0; 1];
-        self.i2c.write_read(ak8963::I2C_ADDRESS, &[reg.addr()], &mut buffer)?;
+        let reg_addr = [reg.addr()];
+        let mut operations =
+            [I2cOperation::Write(&reg_addr), I2cOperation::Read(&mut buffer)];
+        self.i2c.transaction(ak8963::I2C_ADDRESS, &mut operations)?;
         Ok(buffer[0])
     }
 
@@ -369,9 +359,10 @@ impl<I2C, E> AK8963 for I2cDevice<I2C>
         // to read register ST2. We're required to read ST2 after each
         // reading, otherwise the magnetometer blocks sampling. We can
         // achieve this in one I2C transaction
-        self.i2c.write_read(ak8963::I2C_ADDRESS,
-                             &[ak8963::Register::XOUT_L.addr()],
-                             buffer)?;
+        let reg_addr = [ak8963::Register::XOUT_L.addr()];
+        let mut operations =
+            [I2cOperation::Write(&reg_addr), I2cOperation::Read(buffer)];
+        self.i2c.transaction(ak8963::I2C_ADDRESS, &mut operations)?;
 
         buffer[..].rotate_right(1);
         buffer[0] = 0; // Zero out ST2 afer rotation
@@ -396,8 +387,8 @@ pub trait NineDOFDevice:
                  -> Result<(), <Self as Device>::Error>;
 }
 
-impl<SPI, NCS, E, EO> NineDOFDevice for SpiDevice<SPI, NCS>
-    where SPI: spi::Write<u8, Error = E> + spi::Transfer<u8, Error = E>,
+impl<SPI, NCS, EO> NineDOFDevice for SpiDevice<SPI, NCS>
+    where SPI: SpiBus<u8>,
           NCS: OutputPin<Error = EO>
 {
     fn read_9dof(&mut self,
@@ -409,10 +400,7 @@ impl<SPI, NCS, E, EO> NineDOFDevice for SpiDevice<SPI, NCS>
     }
 }
 
-impl<I2C, E> NineDOFDevice for I2cDevice<I2C>
-    where I2C: i2c::Read<Error = E>
-              + i2c::Write<Error = E>
-              + i2c::WriteRead<Error = E>
+impl<I2C> NineDOFDevice for I2cDevice<I2C> where I2C: I2c<SevenBitAddress>
 {
     fn read_9dof(&mut self,
                  reg: Register,
