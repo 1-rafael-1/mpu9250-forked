@@ -82,7 +82,7 @@ pub use types::*;
 #[doc(hidden)]
 pub use device::Releasable;
 pub use device::{
-    Device, I2CError, I2cDevice, NineDOFDevice, SpiDevice, SpiError
+    Device, I2CError, I2cDevice, NineDOFDevice, SpiDevice, SpiError,
 };
 
 /// Suported MPUx devices
@@ -98,8 +98,8 @@ pub enum MpuXDevice {
 impl MpuXDevice {
     fn imu_supported(b: u8) -> bool {
         b == (MpuXDevice::MPU9250 as u8)
-        || b == (MpuXDevice::MPU9255 as u8)
-        || b == (MpuXDevice::MPU6500 as u8)
+            || b == (MpuXDevice::MPU9255 as u8)
+            || b == (MpuXDevice::MPU6500 as u8)
     }
 
     fn marg_supported(b: u8) -> bool {
@@ -178,18 +178,19 @@ mod spi_defs {
 
     // SPI device, 6DOF
     impl<SPI, NCS, EO> Mpu9250<SpiDevice<SPI, NCS>, Imu>
-        where SPI: SpiBus<u8>,
-              NCS: OutputPin<Error = EO>
+    where
+        SPI: SpiBus<u8>,
+        NCS: OutputPin<Error = EO>,
     {
         /// Creates a new [`Imu`] driver from a SPI peripheral and a NCS pin
         /// with default configuration.
         pub fn imu_default<D>(
             spi: SPI,
             ncs: NCS,
-            delay: &mut D)
-            -> Result<Self,
-                      Error<<SpiDevice<SPI, NCS> as device::Device>::Error>>
-            where D: DelayNs
+            delay: &mut D,
+        ) -> Result<Self, Error<<SpiDevice<SPI, NCS> as device::Device>::Error>>
+        where
+            D: DelayNs,
         {
             Self::imu(spi, ncs, delay, &mut MpuConfig::imu())
         }
@@ -202,10 +203,10 @@ mod spi_defs {
             spi: SPI,
             ncs: NCS,
             delay: &mut D,
-            config: &mut MpuConfig<Imu>)
-            -> Result<Self,
-                      Error<<SpiDevice<SPI, NCS> as device::Device>::Error>>
-            where D: DelayNs
+            config: &mut MpuConfig<Imu>,
+        ) -> Result<Self, Error<<SpiDevice<SPI, NCS> as device::Device>::Error>>
+        where
+            D: DelayNs,
         {
             let dev = SpiDevice::new(spi, ncs);
             Self::new_imu(dev, delay, config)
@@ -226,27 +227,27 @@ mod spi_defs {
             ncs: NCS,
             delay: &mut D,
             config: &mut MpuConfig<Imu>,
-            reinit_fn: F)
-            -> Result<Self,
-                      Error<<SpiDevice<SPI, NCS> as device::Device>::Error>>
-            where D: DelayNs,
-                  F: FnOnce(SPI, NCS) -> Option<(SPI, NCS)>
+            reinit_fn: F,
+        ) -> Result<Self, Error<<SpiDevice<SPI, NCS> as device::Device>::Error>>
+        where
+            D: DelayNs,
+            F: FnOnce(SPI, NCS) -> Option<(SPI, NCS)>,
         {
             let dev = SpiDevice::new(spi, ncs);
             let mpu = Self::new_imu(dev, delay, config)?;
             mpu.reset_device(|spidev| {
-                   let (cspi, cncs) = spidev.release();
-                   reinit_fn(cspi, cncs).map(|(nspi, nncs)| {
-                                            SpiDevice::new(nspi, nncs)
-                                        })
-               })
+                let (cspi, cncs) = spidev.release();
+                reinit_fn(cspi, cncs)
+                    .map(|(nspi, nncs)| SpiDevice::new(nspi, nncs))
+            })
         }
     }
 
     // SPI device, 9 DOF
     impl<SPI, NCS, EO> Mpu9250<SpiDevice<SPI, NCS>, Marg>
-        where SPI: SpiBus<u8>,
-              NCS: OutputPin<Error = EO>
+    where
+        SPI: SpiBus<u8>,
+        NCS: OutputPin<Error = EO>,
     {
         /// Creates a new [`Marg`] driver from a SPI peripheral and a NCS pin
         /// with default [`Config`].
@@ -255,10 +256,10 @@ mod spi_defs {
         pub fn marg_default<D>(
             spi: SPI,
             ncs: NCS,
-            delay: &mut D)
-            -> Result<Self,
-                      Error<<SpiDevice<SPI, NCS> as device::Device>::Error>>
-            where D: DelayNs
+            delay: &mut D,
+        ) -> Result<Self, Error<<SpiDevice<SPI, NCS> as device::Device>::Error>>
+        where
+            D: DelayNs,
         {
             Mpu9250::marg(spi, ncs, delay, &mut MpuConfig::marg())
         }
@@ -271,10 +272,10 @@ mod spi_defs {
             spi: SPI,
             ncs: NCS,
             delay: &mut D,
-            config: &mut MpuConfig<Marg>)
-            -> Result<Self,
-                      Error<<SpiDevice<SPI, NCS> as device::Device>::Error>>
-            where D: DelayNs
+            config: &mut MpuConfig<Marg>,
+        ) -> Result<Self, Error<<SpiDevice<SPI, NCS> as device::Device>::Error>>
+        where
+            D: DelayNs,
         {
             let dev = SpiDevice::new(spi, ncs);
             Self::new_marg(dev, delay, config)
@@ -295,37 +296,37 @@ mod spi_defs {
             ncs: NCS,
             delay: &mut D,
             config: &mut MpuConfig<Marg>,
-            reinit_fn: F)
-            -> Result<Self,
-                      Error<<SpiDevice<SPI, NCS> as device::Device>::Error>>
-            where D: DelayNs,
-                  F: FnOnce(SPI, NCS) -> Option<(SPI, NCS)>
+            reinit_fn: F,
+        ) -> Result<Self, Error<<SpiDevice<SPI, NCS> as device::Device>::Error>>
+        where
+            D: DelayNs,
+            F: FnOnce(SPI, NCS) -> Option<(SPI, NCS)>,
         {
             let dev = SpiDevice::new(spi, ncs);
             let mpu = Self::new_marg(dev, delay, config)?;
             mpu.reset_device(|spidev| {
-                   let (cspi, cncs) = spidev.release();
-                   reinit_fn(cspi, cncs).map(|(nspi, nncs)| {
-                                            SpiDevice::new(nspi, nncs)
-                                        })
-               })
+                let (cspi, cncs) = spidev.release();
+                reinit_fn(cspi, cncs)
+                    .map(|(nspi, nncs)| SpiDevice::new(nspi, nncs))
+            })
         }
     }
 
     #[cfg(feature = "dmp")]
     impl<SPI, NCS, EO> Mpu9250<SpiDevice<SPI, NCS>, Dmp>
-        where SPI: SpiBus<u8>,
-              NCS: OutputPin<Error = EO>
+    where
+        SPI: SpiBus<u8>,
+        NCS: OutputPin<Error = EO>,
     {
         /// Create a new dmp device with default configuration
         pub fn dmp_default<D>(
             spi: SPI,
             ncs: NCS,
             delay: &mut D,
-            firmware: &[u8])
-            -> Result<Self,
-                      Error<<SpiDevice<SPI, NCS> as device::Device>::Error>>
-            where D: DelayNs
+            firmware: &[u8],
+        ) -> Result<Self, Error<<SpiDevice<SPI, NCS> as device::Device>::Error>>
+        where
+            D: DelayNs,
         {
             let dev = SpiDevice::new(spi, ncs);
             Self::new_dmp(dev, delay, &mut MpuConfig::dmp(), firmware)
@@ -337,10 +338,10 @@ mod spi_defs {
             ncs: NCS,
             delay: &mut D,
             config: &mut MpuConfig<Dmp>,
-            firmware: &[u8])
-            -> Result<Self,
-                      Error<<SpiDevice<SPI, NCS> as device::Device>::Error>>
-            where D: DelayNs
+            firmware: &[u8],
+        ) -> Result<Self, Error<<SpiDevice<SPI, NCS> as device::Device>::Error>>
+        where
+            D: DelayNs,
         {
             let dev = SpiDevice::new(spi, ncs);
             Self::new_dmp(dev, delay, config, firmware)
@@ -349,8 +350,9 @@ mod spi_defs {
 
     // SPI device, any mode
     impl<SPI, NCS, MODE, EO> Mpu9250<SpiDevice<SPI, NCS>, MODE>
-        where SPI: SpiBus<u8>,
-              NCS: OutputPin<Error = EO>
+    where
+        SPI: SpiBus<u8>,
+        NCS: OutputPin<Error = EO>,
     {
         /// Destroys the driver recovering the SPI peripheral and the NCS pin
         pub fn release(self) -> (SPI, NCS) {
@@ -367,15 +369,18 @@ mod i2c_defs {
     use super::*;
     use hal::i2c::{I2c, SevenBitAddress};
 
-    impl<I2C> Mpu9250<I2cDevice<I2C>, Imu> where I2C: I2c<SevenBitAddress>
+    impl<I2C> Mpu9250<I2cDevice<I2C>, Imu>
+    where
+        I2C: I2c<SevenBitAddress>,
     {
         /// Creates a new [`Imu`] driver from an I2C peripheral
         /// with default configuration.
         pub fn imu_default<D>(
             i2c: I2C,
-            delay: &mut D)
-            -> Result<Self, Error<<I2cDevice<I2C> as device::Device>::Error>>
-            where D: DelayNs
+            delay: &mut D,
+        ) -> Result<Self, Error<<I2cDevice<I2C> as device::Device>::Error>>
+        where
+            D: DelayNs,
         {
             Mpu9250::imu(i2c, delay, &mut MpuConfig::imu())
         }
@@ -387,9 +392,10 @@ mod i2c_defs {
         pub fn imu<D>(
             i2c: I2C,
             delay: &mut D,
-            config: &mut MpuConfig<Imu>)
-            -> Result<Self, Error<<I2cDevice<I2C> as device::Device>::Error>>
-            where D: DelayNs
+            config: &mut MpuConfig<Imu>,
+        ) -> Result<Self, Error<<I2cDevice<I2C> as device::Device>::Error>>
+        where
+            D: DelayNs,
         {
             let dev = I2cDevice::new(i2c);
             Mpu9250::new_imu(dev, delay, config)
@@ -405,21 +411,24 @@ mod i2c_defs {
             i2c: I2C,
             delay: &mut D,
             config: &mut MpuConfig<Imu>,
-            reinit_fn: F)
-            -> Result<Self, Error<<I2cDevice<I2C> as device::Device>::Error>>
-            where D: DelayNs,
-                  F: FnOnce(I2C) -> Option<I2C>
+            reinit_fn: F,
+        ) -> Result<Self, Error<<I2cDevice<I2C> as device::Device>::Error>>
+        where
+            D: DelayNs,
+            F: FnOnce(I2C) -> Option<I2C>,
         {
             let dev = I2cDevice::new(i2c);
             let mpu = Self::new_imu(dev, delay, config)?;
             mpu.reset_device(|i2cdev| {
-                   let i2c = i2cdev.release();
-                   reinit_fn(i2c).map(|i2c| I2cDevice::new(i2c))
-               })
+                let i2c = i2cdev.release();
+                reinit_fn(i2c).map(|i2c| I2cDevice::new(i2c))
+            })
         }
     }
 
-    impl<I2C> Mpu9250<I2cDevice<I2C>, Marg> where I2C: I2c<SevenBitAddress>
+    impl<I2C> Mpu9250<I2cDevice<I2C>, Marg>
+    where
+        I2C: I2c<SevenBitAddress>,
     {
         /// Creates a new [`Marg`] driver from an I2C peripheral with
         /// default [`Config`].
@@ -427,9 +436,10 @@ mod i2c_defs {
         /// [`Config`]: ./conf/struct.MpuConfig.html
         pub fn marg_default<D>(
             i2c: I2C,
-            delay: &mut D)
-            -> Result<Self, Error<<I2cDevice<I2C> as device::Device>::Error>>
-            where D: DelayNs
+            delay: &mut D,
+        ) -> Result<Self, Error<<I2cDevice<I2C> as device::Device>::Error>>
+        where
+            D: DelayNs,
         {
             Mpu9250::marg(i2c, delay, &mut MpuConfig::marg())
         }
@@ -441,9 +451,10 @@ mod i2c_defs {
         pub fn marg<D>(
             i2c: I2C,
             delay: &mut D,
-            config: &mut MpuConfig<Marg>)
-            -> Result<Self, Error<<I2cDevice<I2C> as device::Device>::Error>>
-            where D: DelayNs
+            config: &mut MpuConfig<Marg>,
+        ) -> Result<Self, Error<<I2cDevice<I2C> as device::Device>::Error>>
+        where
+            D: DelayNs,
         {
             let dev = I2cDevice::new(i2c);
             Self::new_marg(dev, delay, config)
@@ -459,31 +470,35 @@ mod i2c_defs {
             i2c: I2C,
             delay: &mut D,
             config: &mut MpuConfig<Marg>,
-            reinit_fn: F)
-            -> Result<Self, Error<<I2cDevice<I2C> as device::Device>::Error>>
-            where D: DelayNs,
-                  F: FnOnce(I2C) -> Option<I2C>
+            reinit_fn: F,
+        ) -> Result<Self, Error<<I2cDevice<I2C> as device::Device>::Error>>
+        where
+            D: DelayNs,
+            F: FnOnce(I2C) -> Option<I2C>,
         {
             let dev = I2cDevice::new(i2c);
             let mpu = Self::new_marg(dev, delay, config)?;
             mpu.reset_device(|i2cdev| {
-                   let i2c = i2cdev.release();
-                   reinit_fn(i2c).map(|i2c| I2cDevice::new(i2c))
-               })
+                let i2c = i2cdev.release();
+                reinit_fn(i2c).map(|i2c| I2cDevice::new(i2c))
+            })
         }
     }
 
     #[cfg(feature = "dmp")]
-    impl<I2C> Mpu9250<I2cDevice<I2C>, Dmp> where I2C: I2c<SevenBitAddress>
+    impl<I2C> Mpu9250<I2cDevice<I2C>, Dmp>
+    where
+        I2C: I2c<SevenBitAddress>,
     {
         /// Creates a new DMP driver from an I2C peripheral with default
         /// configuration
         pub fn dmp_default<D>(
             i2c: I2C,
             delay: &mut D,
-            firmware: &[u8])
-            -> Result<Self, Error<<I2cDevice<I2C> as device::Device>::Error>>
-            where D: DelayNs
+            firmware: &[u8],
+        ) -> Result<Self, Error<<I2cDevice<I2C> as device::Device>::Error>>
+        where
+            D: DelayNs,
         {
             let dev = I2cDevice::new(i2c);
             Self::new_dmp(dev, delay, &mut MpuConfig::dmp(), firmware)
@@ -494,9 +509,10 @@ mod i2c_defs {
             i2c: I2C,
             delay: &mut D,
             config: &mut MpuConfig<Dmp>,
-            firmware: &[u8])
-            -> Result<Self, Error<<I2cDevice<I2C> as device::Device>::Error>>
-            where D: DelayNs
+            firmware: &[u8],
+        ) -> Result<Self, Error<<I2cDevice<I2C> as device::Device>::Error>>
+        where
+            D: DelayNs,
         {
             let dev = I2cDevice::new(i2c);
             Self::new_dmp(dev, delay, config, firmware)
@@ -505,7 +521,8 @@ mod i2c_defs {
 
     // I2C device, any mode
     impl<I2C, MODE> Mpu9250<I2cDevice<I2C>, MODE>
-        where I2C: I2c<SevenBitAddress>
+    where
+        I2C: I2c<SevenBitAddress>,
     {
         /// Destroys the driver, recovering the I2C peripheral
         pub fn release(self) -> I2C {
@@ -518,31 +535,34 @@ mod i2c_defs {
 pub use i2c_defs::*;
 
 // Any device, 6DOF
-impl<E, DEV> Mpu9250<DEV, Imu> where DEV: Device<Error = E>
+impl<E, DEV> Mpu9250<DEV, Imu>
+where
+    DEV: Device<Error = E>,
 {
     /// Private constructor that creates an IMU-based MPU with the
     /// specified device.
-    fn new_imu<D>(dev: DEV,
-                  delay: &mut D,
-                  config: &mut MpuConfig<Imu>)
-                  -> Result<Self, Error<E>>
-        where D: DelayNs
+    fn new_imu<D>(
+        dev: DEV,
+        delay: &mut D,
+        config: &mut MpuConfig<Imu>,
+    ) -> Result<Self, Error<E>>
+    where
+        D: DelayNs,
     {
-        let mut mpu9250 =
-            Mpu9250 { dev,
-                      raw_mag_sensitivity_adjustments: [0; 3],
-                      mag_sensitivity_adjustments: [0.0; 3],
-                      gyro_scale: config.gyro_scale.unwrap_or_default(),
-                      accel_scale: config.accel_scale.unwrap_or_default(),
-                      mag_scale: MagScale::default(),
-                      accel_data_rate: config.accel_data_rate
-                                             .unwrap_or_default(),
-                      gyro_temp_data_rate: config.gyro_temp_data_rate
-                                                 .unwrap_or_default(),
-                      sample_rate_divisor: config.sample_rate_divisor,
-                      dmp_configuration: config.dmp_configuration,
-                      packet_size: 0,
-                      _mode: PhantomData };
+        let mut mpu9250 = Mpu9250 {
+            dev,
+            raw_mag_sensitivity_adjustments: [0; 3],
+            mag_sensitivity_adjustments: [0.0; 3],
+            gyro_scale: config.gyro_scale.unwrap_or_default(),
+            accel_scale: config.accel_scale.unwrap_or_default(),
+            mag_scale: MagScale::default(),
+            accel_data_rate: config.accel_data_rate.unwrap_or_default(),
+            gyro_temp_data_rate: config.gyro_temp_data_rate.unwrap_or_default(),
+            sample_rate_divisor: config.sample_rate_divisor,
+            dmp_configuration: config.dmp_configuration,
+            packet_size: 0,
+            _mode: PhantomData,
+        };
         mpu9250.init_mpu(delay)?;
         let wai = mpu9250.who_am_i()?;
         if MpuXDevice::imu_supported(wai) {
@@ -557,10 +577,12 @@ impl<E, DEV> Mpu9250<DEV, Imu> where DEV: Device<Error = E>
         transpose(config.gyro_scale.map(|v| self.gyro_scale(v)))?;
         transpose(config.accel_scale.map(|v| self.accel_scale(v)))?;
         transpose(config.accel_data_rate.map(|v| self.accel_data_rate(v)))?;
-        transpose(config.gyro_temp_data_rate
-                        .map(|v| self.gyro_temp_data_rate(v)))?;
-        transpose(config.sample_rate_divisor
-                        .map(|v| self.sample_rate_divisor(v)))?;
+        transpose(
+            config.gyro_temp_data_rate.map(|v| self.gyro_temp_data_rate(v)),
+        )?;
+        transpose(
+            config.sample_rate_divisor.map(|v| self.sample_rate_divisor(v)),
+        )?;
 
         Ok(())
     }
@@ -568,7 +590,8 @@ impl<E, DEV> Mpu9250<DEV, Imu> where DEV: Device<Error = E>
     /// Reads and returns raw unscaled Accelerometer + Gyroscope + Thermometer
     /// measurements (LSB).
     pub fn unscaled_all<T>(&mut self) -> Result<UnscaledImuMeasurements<T>, E>
-        where T: From<[i16; 3]>
+    where
+        T: From<[i16; 3]>,
     {
         let buffer = &mut [0; 15];
         self.dev.read_many(Register::ACCEL_XOUT_H, &mut buffer[..])?;
@@ -576,15 +599,18 @@ impl<E, DEV> Mpu9250<DEV, Imu> where DEV: Device<Error = E>
         let temp = ((u16(buffer[7]) << 8) | u16(buffer[8])) as i16;
         let gyro = self.to_vector(buffer, 8).into();
 
-        Ok(UnscaledImuMeasurements { accel,
-                                     gyro,
-                                     temp })
+        Ok(UnscaledImuMeasurements {
+            accel,
+            gyro,
+            temp,
+        })
     }
 
     /// Reads and returns Accelerometer + Gyroscope + Thermometer
     /// measurements scaled and converted to respective units.
     pub fn all<T>(&mut self) -> Result<ImuMeasurements<T>, E>
-        where T: From<[f32; 3]>
+    where
+        T: From<[f32; 3]>,
     {
         let buffer = &mut [0; 15];
         self.dev.read_many(Register::ACCEL_XOUT_H, &mut buffer[..])?;
@@ -593,9 +619,11 @@ impl<E, DEV> Mpu9250<DEV, Imu> where DEV: Device<Error = E>
         let temp = self.scale_temp(buffer, 6);
         let gyro = self.scale_gyro(buffer, 8).into();
 
-        Ok(ImuMeasurements { accel,
-                             gyro,
-                             temp })
+        Ok(ImuMeasurements {
+            accel,
+            gyro,
+            temp,
+        })
     }
 
     /// Calculates the average of the at-rest readings of accelerometer and
@@ -608,11 +636,13 @@ impl<E, DEV> Mpu9250<DEV, Imu> where DEV: Device<Error = E>
     ///
     /// NOTE: MPU is able to store accelerometer biases, to apply them
     ///       automatically, but at this moment it does not work.
-    pub fn calibrate_at_rest<D, T>(&mut self,
-                                   delay: &mut D)
-                                   -> Result<T, Error<E>>
-        where D: DelayNs,
-              T: From<[f32; 3]>
+    pub fn calibrate_at_rest<D, T>(
+        &mut self,
+        delay: &mut D,
+    ) -> Result<T, Error<E>>
+    where
+        D: DelayNs,
+        T: From<[f32; 3]>,
     {
         Ok(self._calibrate_at_rest(delay)?.into())
     }
@@ -620,31 +650,33 @@ impl<E, DEV> Mpu9250<DEV, Imu> where DEV: Device<Error = E>
 
 // Any device, 9DOF
 impl<E, DEV> Mpu9250<DEV, Marg>
-    where DEV: Device<Error = E> + AK8963<Error = E> + NineDOFDevice
+where
+    DEV: Device<Error = E> + AK8963<Error = E> + NineDOFDevice,
 {
     // Private constructor that creates a MARG-based MPU with
     // the specified device.
-    fn new_marg<D>(dev: DEV,
-                   delay: &mut D,
-                   config: &mut MpuConfig<Marg>)
-                   -> Result<Self, Error<E>>
-        where D: DelayNs
+    fn new_marg<D>(
+        dev: DEV,
+        delay: &mut D,
+        config: &mut MpuConfig<Marg>,
+    ) -> Result<Self, Error<E>>
+    where
+        D: DelayNs,
     {
-        let mut mpu9250 =
-            Mpu9250 { dev,
-                      raw_mag_sensitivity_adjustments: [0; 3],
-                      mag_sensitivity_adjustments: [0.0; 3],
-                      gyro_scale: config.gyro_scale.unwrap_or_default(),
-                      accel_scale: config.accel_scale.unwrap_or_default(),
-                      mag_scale: config.mag_scale.unwrap_or_default(),
-                      accel_data_rate: config.accel_data_rate
-                                             .unwrap_or_default(),
-                      gyro_temp_data_rate: config.gyro_temp_data_rate
-                                                 .unwrap_or_default(),
-                      sample_rate_divisor: config.sample_rate_divisor,
-                      dmp_configuration: config.dmp_configuration,
-                      packet_size: 0,
-                      _mode: PhantomData };
+        let mut mpu9250 = Mpu9250 {
+            dev,
+            raw_mag_sensitivity_adjustments: [0; 3],
+            mag_sensitivity_adjustments: [0.0; 3],
+            gyro_scale: config.gyro_scale.unwrap_or_default(),
+            accel_scale: config.accel_scale.unwrap_or_default(),
+            mag_scale: config.mag_scale.unwrap_or_default(),
+            accel_data_rate: config.accel_data_rate.unwrap_or_default(),
+            gyro_temp_data_rate: config.gyro_temp_data_rate.unwrap_or_default(),
+            sample_rate_divisor: config.sample_rate_divisor,
+            dmp_configuration: config.dmp_configuration,
+            packet_size: 0,
+            _mode: PhantomData,
+        };
         mpu9250.init_mpu(delay)?;
         let wai = mpu9250.who_am_i()?;
         if MpuXDevice::marg_supported(wai) {
@@ -668,11 +700,13 @@ impl<E, DEV> Mpu9250<DEV, Marg>
     ///
     /// NOTE: MPU is able to store accelerometer biases, to apply them
     ///       automatically, but at this moment it does not work.
-    pub fn calibrate_at_rest<D, T>(&mut self,
-                                   delay: &mut D)
-                                   -> Result<T, Error<E>>
-        where D: DelayNs,
-              T: From<[f32; 3]>
+    pub fn calibrate_at_rest<D, T>(
+        &mut self,
+        delay: &mut D,
+    ) -> Result<T, Error<E>>
+    where
+        D: DelayNs,
+        T: From<[f32; 3]>,
     {
         let accel_biases = self._calibrate_at_rest(delay)?;
         self.init_ak8963(delay)?;
@@ -680,7 +714,8 @@ impl<E, DEV> Mpu9250<DEV, Marg>
     }
 
     fn init_ak8963<D>(&mut self, delay: &mut D) -> Result<(), E>
-        where D: DelayNs
+    where
+        D: DelayNs,
     {
         AK8963::init(&mut self.dev, delay)?;
         delay.delay_ns(10 * 1_000_000);
@@ -698,10 +733,11 @@ impl<E, DEV> Mpu9250<DEV, Marg>
         // Return x-axis sensitivity adjustment values, etc.
         self.raw_mag_sensitivity_adjustments =
             [mag_x_bias, mag_y_bias, mag_z_bias];
-        self.mag_sensitivity_adjustments =
-            [((mag_x_bias - 128) as f32) / 256. + 1.,
-             ((mag_y_bias - 128) as f32) / 256. + 1.,
-             ((mag_z_bias - 128) as f32) / 256. + 1.];
+        self.mag_sensitivity_adjustments = [
+            ((mag_x_bias - 128) as f32) / 256. + 1.,
+            ((mag_y_bias - 128) as f32) / 256. + 1.,
+            ((mag_z_bias - 128) as f32) / 256. + 1.,
+        ];
         // Power down magnetometer
         AK8963::write(&mut self.dev, ak8963::Register::CNTL1, 0x00)?;
         delay.delay_ns(10 * 1_000_000);
@@ -720,10 +756,12 @@ impl<E, DEV> Mpu9250<DEV, Marg>
         transpose(config.accel_scale.map(|v| self.accel_scale(v)))?;
         transpose(config.mag_scale.map(|v| self.mag_scale(v)))?;
         transpose(config.accel_data_rate.map(|v| self.accel_data_rate(v)))?;
-        transpose(config.gyro_temp_data_rate
-                        .map(|v| self.gyro_temp_data_rate(v)))?;
-        transpose(config.sample_rate_divisor
-                        .map(|v| self.sample_rate_divisor(v)))?;
+        transpose(
+            config.gyro_temp_data_rate.map(|v| self.gyro_temp_data_rate(v)),
+        )?;
+        transpose(
+            config.sample_rate_divisor.map(|v| self.sample_rate_divisor(v)),
+        )?;
 
         Ok(())
     }
@@ -731,42 +769,52 @@ impl<E, DEV> Mpu9250<DEV, Marg>
     /// Reads and returns raw unscaled Accelerometer + Gyroscope + Thermometer
     /// + Magnetometer measurements (LSB).
     pub fn unscaled_all<T>(&mut self) -> Result<UnscaledMargMeasurements<T>, E>
-        where T: From<[i16; 3]>
+    where
+        T: From<[i16; 3]>,
     {
         let buffer = &mut [0; 21];
-        NineDOFDevice::read_9dof(&mut self.dev,
-                                 Register::ACCEL_XOUT_H,
-                                 buffer)?;
+        NineDOFDevice::read_9dof(
+            &mut self.dev,
+            Register::ACCEL_XOUT_H,
+            buffer,
+        )?;
         let accel = self.to_vector(buffer, 0).into();
         let temp = ((u16(buffer[7]) << 8) | u16(buffer[8])) as i16;
         let gyro = self.to_vector(buffer, 8).into();
         let mag = self.to_vector_inverted(buffer, 14).into();
 
-        Ok(UnscaledMargMeasurements { accel,
-                                      gyro,
-                                      temp,
-                                      mag })
+        Ok(UnscaledMargMeasurements {
+            accel,
+            gyro,
+            temp,
+            mag,
+        })
     }
 
     /// Reads and returns Accelerometer + Gyroscope + Thermometer + Magnetometer
     /// measurements scaled and converted to respective units.
     pub fn all<T>(&mut self) -> Result<MargMeasurements<T>, E>
-        where T: From<[f32; 3]>
+    where
+        T: From<[f32; 3]>,
     {
         let buffer = &mut [0; 21];
-        NineDOFDevice::read_9dof(&mut self.dev,
-                                 Register::ACCEL_XOUT_H,
-                                 buffer)?;
+        NineDOFDevice::read_9dof(
+            &mut self.dev,
+            Register::ACCEL_XOUT_H,
+            buffer,
+        )?;
 
         let accel = self.scale_accel(buffer, 0).into();
         let temp = self.scale_temp(buffer, 6);
         let gyro = self.scale_gyro(buffer, 8).into();
         let mag = self.scale_and_correct_mag(buffer, 14).into();
 
-        Ok(MargMeasurements { accel,
-                              gyro,
-                              temp,
-                              mag })
+        Ok(MargMeasurements {
+            accel,
+            gyro,
+            temp,
+            mag,
+        })
     }
 
     /// Perform magnetometer self-test
@@ -783,13 +831,15 @@ impl<E, DEV> Mpu9250<DEV, Marg>
         // register should be kept “0”)
         AK8963::write(&mut self.dev, ak8963::Register::ASTC, 0b01000000)?;
         // (3) Set Self-test Mode. (MODE[3:0]=“1000”)
-        AK8963::write(&mut self.dev,
-                      ak8963::Register::CNTL1,
-                      control | 0b00001000)?;
+        AK8963::write(
+            &mut self.dev,
+            ak8963::Register::CNTL1,
+            control | 0b00001000,
+        )?;
         // (4) Check Data Ready or not by any of the following method.
         // - Polling DRDY bit of ST1 register
         while AK8963::read(&mut self.dev, ak8963::Register::ST1)? & 0b00000001
-              != 0
+            != 0
         {}
         // When Data Ready, proceed to the next step.
         // (5) Read measurement data (HXL to HZH)
@@ -822,14 +872,17 @@ impl<E, DEV> Mpu9250<DEV, Marg>
         let resolution = self.mag_scale.resolution();
         let raw = self.to_vector_inverted(buffer, offset);
 
-        [raw[0] as f32 * resolution * self.mag_sensitivity_adjustments[0],
-         raw[1] as f32 * resolution * self.mag_sensitivity_adjustments[1],
-         raw[2] as f32 * resolution * self.mag_sensitivity_adjustments[2]]
+        [
+            raw[0] as f32 * resolution * self.mag_sensitivity_adjustments[0],
+            raw[1] as f32 * resolution * self.mag_sensitivity_adjustments[1],
+            raw[2] as f32 * resolution * self.mag_sensitivity_adjustments[2],
+        ]
     }
 
     /// Reads and returns raw unscaled Magnetometer measurements (LSB).
     pub fn unscaled_mag<T>(&mut self) -> Result<T, E>
-        where T: From<[i16; 3]>
+    where
+        T: From<[i16; 3]>,
     {
         let buffer = &mut [0; 7];
         self.dev.read_xyz(buffer)?;
@@ -839,7 +892,8 @@ impl<E, DEV> Mpu9250<DEV, Marg>
     /// Read and returns Magnetometer measurements scaled, adjusted for factory
     /// sensitivities, and converted to microTeslas.
     pub fn mag<T>(&mut self) -> Result<T, E>
-        where T: From<[f32; 3]>
+    where
+        T: From<[f32; 3]>,
     {
         let buffer = &mut [0; 7];
         self.dev.read_xyz(buffer)?;
@@ -848,14 +902,16 @@ impl<E, DEV> Mpu9250<DEV, Marg>
 
     /// Returns raw mag sensitivity adjustments
     pub fn raw_mag_sensitivity_adjustments<T>(&self) -> T
-        where T: From<[u8; 3]>
+    where
+        T: From<[u8; 3]>,
     {
         self.raw_mag_sensitivity_adjustments.into()
     }
 
     /// Returns mag sensitivity adjustments
     pub fn mag_sensitivity_adjustments<T>(&self) -> T
-        where T: From<[f32; 3]>
+    where
+        T: From<[f32; 3]>,
     {
         self.mag_sensitivity_adjustments.into()
     }
@@ -871,9 +927,11 @@ impl<E, DEV> Mpu9250<DEV, Marg>
     fn _mag_scale(&mut self) -> Result<(), E> {
         // Set magnetometer data resolution and sample ODR
         let scale = self.mag_scale as u8;
-        AK8963::write(&mut self.dev,
-                      ak8963::Register::CNTL1,
-                      scale << 4 | MMODE)?;
+        AK8963::write(
+            &mut self.dev,
+            ak8963::Register::CNTL1,
+            scale << 4 | MMODE,
+        )?;
         Ok(())
     }
 
@@ -894,52 +952,58 @@ impl<E, DEV> Mpu9250<DEV, Marg>
 
 // Any device, DMP
 #[cfg(feature = "dmp")]
-impl<E, DEV> Mpu9250<DEV, Dmp> where DEV: Device<Error = E>
+impl<E, DEV> Mpu9250<DEV, Dmp>
+where
+    DEV: Device<Error = E>,
 {
     /// Private constructor that creates a DMP-based MPU with the
     /// specified device.
-    fn new_dmp<D>(dev: DEV,
-                  delay: &mut D,
-                  config: &mut MpuConfig<Dmp>,
-                  firmware: &[u8])
-                  -> Result<Self, Error<E>>
-        where D: DelayNs
+    fn new_dmp<D>(
+        dev: DEV,
+        delay: &mut D,
+        config: &mut MpuConfig<Dmp>,
+        firmware: &[u8],
+    ) -> Result<Self, Error<E>>
+    where
+        D: DelayNs,
     {
-        let mut mpu9250 =
-            Mpu9250 { dev,
-                      raw_mag_sensitivity_adjustments: [0; 3],
-                      mag_sensitivity_adjustments: [0.0; 3],
-                      gyro_scale: config.gyro_scale
-                                        .unwrap_or(GyroScale::_2000DPS),
-                      accel_scale: config.accel_scale
-                                         .unwrap_or(AccelScale::_8G),
-                      mag_scale: config.mag_scale.unwrap_or_default(),
-                      accel_data_rate:
-                          config.accel_data_rate
-                                .unwrap_or(AccelDataRate::DlpfConf(Dlpf::_1)),
-                      gyro_temp_data_rate:
-                          config.gyro_temp_data_rate
-                                .unwrap_or(GyroTempDataRate::DlpfConf(Dlpf::_1)),
-                      sample_rate_divisor: config.sample_rate_divisor
-                                                 .or(Some(4)),
-                      dmp_configuration: Some(config.dmp_configuration
-                                                    .unwrap_or_default()),
-                      packet_size: config.dmp_configuration
-                                         .unwrap_or_default()
-                                         .features
-                                         .packet_size(),
-                      _mode: PhantomData };
+        let mut mpu9250 = Mpu9250 {
+            dev,
+            raw_mag_sensitivity_adjustments: [0; 3],
+            mag_sensitivity_adjustments: [0.0; 3],
+            gyro_scale: config.gyro_scale.unwrap_or(GyroScale::_2000DPS),
+            accel_scale: config.accel_scale.unwrap_or(AccelScale::_8G),
+            mag_scale: config.mag_scale.unwrap_or_default(),
+            accel_data_rate: config
+                .accel_data_rate
+                .unwrap_or(AccelDataRate::DlpfConf(Dlpf::_1)),
+            gyro_temp_data_rate: config
+                .gyro_temp_data_rate
+                .unwrap_or(GyroTempDataRate::DlpfConf(Dlpf::_1)),
+            sample_rate_divisor: config.sample_rate_divisor.or(Some(4)),
+            dmp_configuration: Some(
+                config.dmp_configuration.unwrap_or_default(),
+            ),
+            packet_size: config
+                .dmp_configuration
+                .unwrap_or_default()
+                .features
+                .packet_size(),
+            _mode: PhantomData,
+        };
         mpu9250.init_mpu(delay)?;
         mpu9250.init_dmp(delay, firmware)?;
         Ok(mpu9250)
     }
 
     /// Logic to init the dmp
-    fn init_dmp<D>(&mut self,
-                   delay: &mut D,
-                   firmware: &[u8])
-                   -> Result<(), Error<E>>
-        where D: DelayMs<u8>
+    fn init_dmp<D>(
+        &mut self,
+        delay: &mut D,
+        firmware: &[u8],
+    ) -> Result<(), Error<E>>
+    where
+        D: DelayNs,
     {
         let conf = self.dmp_configuration.unwrap_or_default();
         // disable i2c master mode and enable fifo
@@ -948,10 +1012,12 @@ impl<E, DEV> Mpu9250<DEV, Dmp> where DEV: Device<Error = E>
         delay.delay_ms(3);
 
         // enable i2c bypass
-        self.interrupt_config(InterruptConfig::LATCH_INT_EN
-                              | InterruptConfig::INT_ANYRD_CLEAR
-                              | InterruptConfig::ACL
-                              | InterruptConfig::BYPASS_EN)?;
+        self.interrupt_config(
+            InterruptConfig::LATCH_INT_EN
+                | InterruptConfig::INT_ANYRD_CLEAR
+                | InterruptConfig::ACL
+                | InterruptConfig::BYPASS_EN,
+        )?;
 
         // load firmware
         self.load_firmware(firmware)?;
@@ -968,9 +1034,13 @@ impl<E, DEV> Mpu9250<DEV, Dmp> where DEV: Device<Error = E>
         let div = [0, conf.rate as u8];
         self.write_mem(DmpMemory::D_0_22, &div)?;
 
-        self.write_mem(DmpMemory::CFG_6,
-                       &[0xfe, 0xf2, 0xab, 0xc4, 0xaa, 0xf1, 0xdf, 0xdf,
-                         0xbb, 0xaf, 0xdf, 0xdf])?;
+        self.write_mem(
+            DmpMemory::CFG_6,
+            &[
+                0xfe, 0xf2, 0xab, 0xc4, 0xaa, 0xf1, 0xdf, 0xdf, 0xbb, 0xaf,
+                0xdf, 0xdf,
+            ],
+        )?;
 
         // turn on the dmp
         self.dev.write(Register::INT_ENABLE, 0)?;
@@ -979,10 +1049,12 @@ impl<E, DEV> Mpu9250<DEV, Dmp> where DEV: Device<Error = E>
         // enable i2c bypass
         self.dev.write(Register::USER_CTRL, FIFO_EN)?;
         delay.delay_ns(10 * 1_000_000);
-        self.interrupt_config(InterruptConfig::LATCH_INT_EN
-                              | InterruptConfig::INT_ANYRD_CLEAR
-                              | InterruptConfig::ACL
-                              | InterruptConfig::BYPASS_EN)?;
+        self.interrupt_config(
+            InterruptConfig::LATCH_INT_EN
+                | InterruptConfig::INT_ANYRD_CLEAR
+                | InterruptConfig::ACL
+                | InterruptConfig::BYPASS_EN,
+        )?;
 
         self.dev.write(Register::FIFO_EN, 0)?;
         self.dev.write(Register::INT_ENABLE, 0x02)?;
@@ -990,9 +1062,10 @@ impl<E, DEV> Mpu9250<DEV, Dmp> where DEV: Device<Error = E>
         self.reset_fifo(delay)?;
 
         // set interrupt mode
-        self.write_mem(DmpMemory::CFG_FIFO_ON_EVENT,
-                       &[0xd8, 0xb1, 0xb9, 0xf3, 0x8b, 0xa3, 0x91, 0xb6,
-                         0x09, 0xb4, 0xd9])?;
+        self.write_mem(
+            DmpMemory::CFG_FIFO_ON_EVENT,
+            &[0xd8, 0xb1, 0xb9, 0xf3, 0x8b, 0xa3, 0x91, 0xb6, 0x09, 0xb4, 0xd9],
+        )?;
 
         Ok(())
     }
@@ -1020,7 +1093,8 @@ impl<E, DEV> Mpu9250<DEV, Dmp> where DEV: Device<Error = E>
 
     /// Write the provided slice at the specified address in dmp memory
     fn write_mem<T>(&mut self, addr: T, data: &[u8]) -> Result<(), Error<E>>
-        where T: Into<u16> + Copy
+    where
+        T: Into<u16> + Copy,
     {
         self.dev.write(Register::BANK_SEL, (addr.into() >> 8) as u8)?;
         self.dev.write(Register::MEM_ADDR, (addr.into() & 0xff) as u8)?;
@@ -1030,7 +1104,8 @@ impl<E, DEV> Mpu9250<DEV, Dmp> where DEV: Device<Error = E>
 
     /// Read dmp memory at the specified address into data
     fn read_mem<T>(&mut self, addr: T, data: &mut [u8]) -> Result<(), Error<E>>
-        where T: Into<u16> + Copy
+    where
+        T: Into<u16> + Copy,
     {
         self.dev.write(Register::BANK_SEL, (addr.into() >> 8) as u8)?;
         self.dev.write(Register::MEM_ADDR, (addr.into() & 0xff) as u8)?;
@@ -1040,13 +1115,16 @@ impl<E, DEV> Mpu9250<DEV, Dmp> where DEV: Device<Error = E>
 
     /// Select which dmp features should be enabled
     fn set_dmp_feature<D>(&mut self, delay: &mut D) -> Result<(), Error<E>>
-        where D: DelayMs<u8>
+    where
+        D: DelayNs,
     {
         let features = self.dmp_configuration.unwrap_or_default().features;
-        const GYRO_SF: [u8; 4] = [(46_850_825 >> 24) as u8,
-                                  (46_850_825 >> 16) as u8,
-                                  (46_850_825 >> 8) as u8,
-                                  (46_850_825 & 0xff) as u8];
+        const GYRO_SF: [u8; 4] = [
+            (46_850_825 >> 24) as u8,
+            (46_850_825 >> 16) as u8,
+            (46_850_825 >> 8) as u8,
+            (46_850_825 & 0xff) as u8,
+        ];
         self.write_mem(DmpMemory::D_0_104, &GYRO_SF)?;
 
         let mut conf = [0xa3 as u8; 10];
@@ -1077,36 +1155,48 @@ impl<E, DEV> Mpu9250<DEV, Dmp> where DEV: Device<Error = E>
             Ok(())
         };
 
-        set_config(DmpMemory::CFG_27,
-                   features.tap | features.android_orient,
-                   &[0x20],
-                   &[0xd8])?;
-        set_config(DmpMemory::CFG_MOTION_BIAS,
-                   features.gyro_auto_calibrate,
-                   &[0xb8, 0xaa, 0xb3, 0x8d, 0xb4, 0x98, 0x0d, 0x35, 0x5d],
-                   &[0xb8, 0xaa, 0xaa, 0xaa, 0xb0, 0x88, 0xc3, 0xc5, 0xc7])?;
+        set_config(
+            DmpMemory::CFG_27,
+            features.tap | features.android_orient,
+            &[0x20],
+            &[0xd8],
+        )?;
+        set_config(
+            DmpMemory::CFG_MOTION_BIAS,
+            features.gyro_auto_calibrate,
+            &[0xb8, 0xaa, 0xb3, 0x8d, 0xb4, 0x98, 0x0d, 0x35, 0x5d],
+            &[0xb8, 0xaa, 0xaa, 0xaa, 0xb0, 0x88, 0xc3, 0xc5, 0xc7],
+        )?;
 
         if features.raw_gyro {
-            set_config(DmpMemory::CFG_GYRO_RAW_DATA,
-                       features.gyro_auto_calibrate,
-                       &[0xb2, 0x8b, 0xb6, 0x9b],
-                       &[0xb0, 0x80, 0xb4, 0x90])?;
+            set_config(
+                DmpMemory::CFG_GYRO_RAW_DATA,
+                features.gyro_auto_calibrate,
+                &[0xb2, 0x8b, 0xb6, 0x9b],
+                &[0xb0, 0x80, 0xb4, 0x90],
+            )?;
         }
 
         // TODO handle tap
         set_config(DmpMemory::CFG_20, features.tap, &[0xf8], &[0xd8])?;
-        set_config(DmpMemory::CFG_ANDROID_ORIENT_INT,
-                   features.android_orient,
-                   &[0xd9],
-                   &[0xd8])?;
-        set_config(DmpMemory::CFG_LP_QUAT,
-                   features.quat,
-                   &[0xc0, 0xc2, 0xc4, 0xc6],
-                   &[0x8b, 0x8b, 0x8b, 0x8b])?;
-        set_config(DmpMemory::CFG_8,
-                   features.quat6,
-                   &[0x20, 0x28, 0x30, 0x38],
-                   &[0xa3, 0xa3, 0xa3, 0xa3])?;
+        set_config(
+            DmpMemory::CFG_ANDROID_ORIENT_INT,
+            features.android_orient,
+            &[0xd9],
+            &[0xd8],
+        )?;
+        set_config(
+            DmpMemory::CFG_LP_QUAT,
+            features.quat,
+            &[0xc0, 0xc2, 0xc4, 0xc6],
+            &[0x8b, 0x8b, 0x8b, 0x8b],
+        )?;
+        set_config(
+            DmpMemory::CFG_8,
+            features.quat6,
+            &[0x20, 0x28, 0x30, 0x38],
+            &[0xa3, 0xa3, 0xa3, 0xa3],
+        )?;
 
         self.reset_fifo(delay)?;
 
@@ -1116,10 +1206,11 @@ impl<E, DEV> Mpu9250<DEV, Dmp> where DEV: Device<Error = E>
     /// Reads and returns raw unscaled DMP measurement depending on
     /// activated features(LSB).
     pub fn dmp_unscaled_all<T1, T2>(
-        &mut self)
-        -> Result<UnscaledDmpMeasurement<T1, T2>, Error<E>>
-        where T1: From<[i16; 3]>,
-              T2: From<[i32; 4]>
+        &mut self,
+    ) -> Result<UnscaledDmpMeasurement<T1, T2>, Error<E>>
+    where
+        T1: From<[i16; 3]>,
+        T2: From<[i32; 4]>,
     {
         let features = self.dmp_configuration.unwrap_or_default().features;
 
@@ -1131,9 +1222,11 @@ impl<E, DEV> Mpu9250<DEV, Dmp> where DEV: Device<Error = E>
 
         let mut offset = 0;
         let mut measures: UnscaledDmpMeasurement<T1, T2> =
-            UnscaledDmpMeasurement { quaternion: None,
-                                     accel: None,
-                                     gyro: None };
+            UnscaledDmpMeasurement {
+                quaternion: None,
+                accel: None,
+                gyro: None,
+            };
         if features.quat6 || features.quat {
             measures.quaternion = Some(self.to_quat(&buffer).into());
             offset += 16;
@@ -1152,10 +1245,12 @@ impl<E, DEV> Mpu9250<DEV, Dmp> where DEV: Device<Error = E>
     /// Read all measurement from DMP
     /// Reads and returns DMP measurement scaled depending on
     /// activated features(LSB).
-    pub fn dmp_all<T1, T2>(&mut self)
-                           -> Result<DmpMeasurement<T1, T2>, Error<E>>
-        where T1: From<[f32; 3]>,
-              T2: From<[f64; 4]>
+    pub fn dmp_all<T1, T2>(
+        &mut self,
+    ) -> Result<DmpMeasurement<T1, T2>, Error<E>>
+    where
+        T1: From<[f32; 3]>,
+        T2: From<[f64; 4]>,
     {
         let features = self.dmp_configuration.unwrap_or_default().features;
 
@@ -1166,10 +1261,11 @@ impl<E, DEV> Mpu9250<DEV, Dmp> where DEV: Device<Error = E>
         }
 
         let mut offset = 0;
-        let mut measures: DmpMeasurement<T1, T2> =
-            DmpMeasurement { quaternion: None,
-                             accel: None,
-                             gyro: None };
+        let mut measures: DmpMeasurement<T1, T2> = DmpMeasurement {
+            quaternion: None,
+            accel: None,
+            gyro: None,
+        };
         if features.quat6 || features.quat {
             measures.quaternion = Some(self.to_norm_quat(&buffer).into());
             offset += 16;
@@ -1187,32 +1283,36 @@ impl<E, DEV> Mpu9250<DEV, Dmp> where DEV: Device<Error = E>
 
     /// Parse quaternion from fifo buffer
     fn to_quat(&self, buffer: &[u8]) -> [i32; 4] {
-        [(buffer[1] as i32) << 24
-         | (buffer[2] as i32) << 16
-         | (buffer[3] as i32) << 8
-         | buffer[4] as i32,
-         (buffer[5] as i32) << 24
-         | (buffer[6] as i32) << 16
-         | (buffer[7] as i32) << 8
-         | buffer[8] as i32,
-         (buffer[9] as i32) << 24
-         | (buffer[10] as i32) << 16
-         | (buffer[11] as i32) << 8
-         | buffer[12] as i32,
-         (buffer[13] as i32) << 24
-         | (buffer[14] as i32) << 16
-         | (buffer[15] as i32) << 8
-         | buffer[16] as i32]
+        [
+            (buffer[1] as i32) << 24
+                | (buffer[2] as i32) << 16
+                | (buffer[3] as i32) << 8
+                | buffer[4] as i32,
+            (buffer[5] as i32) << 24
+                | (buffer[6] as i32) << 16
+                | (buffer[7] as i32) << 8
+                | buffer[8] as i32,
+            (buffer[9] as i32) << 24
+                | (buffer[10] as i32) << 16
+                | (buffer[11] as i32) << 8
+                | buffer[12] as i32,
+            (buffer[13] as i32) << 24
+                | (buffer[14] as i32) << 16
+                | (buffer[15] as i32) << 8
+                | buffer[16] as i32,
+        ]
     }
 
     /// Normalized the quaternion
     fn to_norm_quat(&self, buffer: &[u8]) -> [f64; 4] {
         let quat = self.to_quat(buffer);
         //TODO handle this better, here is an ugly map on fixed size array
-        let quat = [f64::from(quat[0]),
-                    f64::from(quat[1]),
-                    f64::from(quat[2]),
-                    f64::from(quat[3])];
+        let quat = [
+            f64::from(quat[0]),
+            f64::from(quat[1]),
+            f64::from(quat[2]),
+            f64::from(quat[3]),
+        ];
         let sum =
             libm::sqrt(quat.iter().map(|x| libm::pow(*x, 2.0)).sum::<f64>());
         [quat[0] / sum, quat[1] / sum, quat[2] / sum, quat[3] / sum]
@@ -1220,10 +1320,13 @@ impl<E, DEV> Mpu9250<DEV, Dmp> where DEV: Device<Error = E>
 }
 
 // Any device, any mode
-impl<E, DEV, MODE> Mpu9250<DEV, MODE> where DEV: Device<Error = E>
+impl<E, DEV, MODE> Mpu9250<DEV, MODE>
+where
+    DEV: Device<Error = E>,
 {
     fn init_mpu<D>(&mut self, delay: &mut D) -> Result<(), E>
-        where D: DelayNs
+    where
+        D: DelayNs,
     {
         // Stop all communication with peripherals (such as AK8963).
         // If the chip is already powered up and if the communication is already
@@ -1265,7 +1368,8 @@ impl<E, DEV, MODE> Mpu9250<DEV, MODE> where DEV: Device<Error = E>
     }
 
     fn reset_device<F>(self, f: F) -> Result<Self, Error<E>>
-        where F: FnOnce(DEV) -> Option<DEV>
+    where
+        F: FnOnce(DEV) -> Option<DEV>,
     {
         let raw_mag_sensitivity_adjustments =
             self.raw_mag_sensitivity_adjustments;
@@ -1280,18 +1384,20 @@ impl<E, DEV, MODE> Mpu9250<DEV, MODE> where DEV: Device<Error = E>
         let packet_size = self.packet_size;
         let _mode = self._mode;
         if let Some(new_dev) = f(self.dev) {
-            Ok(Mpu9250 { dev: new_dev,
-                         raw_mag_sensitivity_adjustments,
-                         mag_sensitivity_adjustments,
-                         gyro_scale,
-                         accel_scale,
-                         mag_scale,
-                         accel_data_rate,
-                         gyro_temp_data_rate,
-                         sample_rate_divisor,
-                         dmp_configuration,
-                         packet_size,
-                         _mode })
+            Ok(Mpu9250 {
+                dev: new_dev,
+                raw_mag_sensitivity_adjustments,
+                mag_sensitivity_adjustments,
+                gyro_scale,
+                accel_scale,
+                mag_scale,
+                accel_data_rate,
+                gyro_temp_data_rate,
+                sample_rate_divisor,
+                dmp_configuration,
+                packet_size,
+                _mode,
+            })
         } else {
             Err(Error::ReInitError)
         }
@@ -1352,7 +1458,8 @@ impl<E, DEV, MODE> Mpu9250<DEV, MODE> where DEV: Device<Error = E>
 
     /// Reset the internal FIFO
     pub fn reset_fifo<D>(&mut self, delay: &mut D) -> Result<(), Error<E>>
-        where D: DelayNs
+    where
+        D: DelayNs,
     {
         self.dev.write(Register::INT_ENABLE, 0)?;
         self.dev.write(Register::FIFO_EN, 0)?;
@@ -1384,7 +1491,8 @@ impl<E, DEV, MODE> Mpu9250<DEV, MODE> where DEV: Device<Error = E>
 
     /// Reads and returns unscaled accelerometer measurements (LSB).
     pub fn unscaled_accel<T>(&mut self) -> Result<T, E>
-        where T: From<[i16; 3]>
+    where
+        T: From<[i16; 3]>,
     {
         let buffer = &mut [0; 7];
         self.dev.read_many(Register::ACCEL_XOUT_H, buffer)?;
@@ -1393,7 +1501,8 @@ impl<E, DEV, MODE> Mpu9250<DEV, MODE> where DEV: Device<Error = E>
 
     /// Reads and returns accelerometer measurements scaled and converted to g.
     pub fn accel<T>(&mut self) -> Result<T, E>
-        where T: From<[f32; 3]>
+    where
+        T: From<[f32; 3]>,
     {
         let buffer = &mut [0; 7];
         self.dev.read_many(Register::ACCEL_XOUT_H, buffer)?;
@@ -1402,7 +1511,8 @@ impl<E, DEV, MODE> Mpu9250<DEV, MODE> where DEV: Device<Error = E>
 
     /// Reads and returns unscaled Gyroscope measurements (LSB).
     pub fn unscaled_gyro<T>(&mut self) -> Result<T, E>
-        where T: From<[i16; 3]>
+    where
+        T: From<[i16; 3]>,
     {
         let buffer = &mut [0; 7];
         self.dev.read_many(Register::GYRO_XOUT_H, buffer)?;
@@ -1411,7 +1521,8 @@ impl<E, DEV, MODE> Mpu9250<DEV, MODE> where DEV: Device<Error = E>
 
     /// Reads and returns gyroscope measurements scaled and converted to rad/s.
     pub fn gyro<T>(&mut self) -> Result<T, E>
-        where T: From<[f32; 3]>
+    where
+        T: From<[f32; 3]>,
     {
         let buffer = &mut [0; 7];
         self.dev.read_many(Register::GYRO_XOUT_H, buffer)?;
@@ -1421,9 +1532,10 @@ impl<E, DEV, MODE> Mpu9250<DEV, MODE> where DEV: Device<Error = E>
     /// Configures accelerometer data rate config ([`AccelDataRate`]).
     ///
     /// [`AccelDataRate`]: ./conf/enum.AccelDataRate.html
-    pub fn accel_data_rate(&mut self,
-                           accel_data_rate: AccelDataRate)
-                           -> Result<(), E> {
+    pub fn accel_data_rate(
+        &mut self,
+        accel_data_rate: AccelDataRate,
+    ) -> Result<(), E> {
         self.accel_data_rate = accel_data_rate;
         self._accel_data_rate()
     }
@@ -1457,9 +1569,10 @@ impl<E, DEV, MODE> Mpu9250<DEV, MODE> where DEV: Device<Error = E>
     /// ([`GyroTempDataRate`]).
     ///
     /// [`GyroTempDataRate`]: ./conf/enum.GyroTempDataRate.html
-    pub fn gyro_temp_data_rate(&mut self,
-                               data_rate: GyroTempDataRate)
-                               -> Result<(), E> {
+    pub fn gyro_temp_data_rate(
+        &mut self,
+        data_rate: GyroTempDataRate,
+    ) -> Result<(), E> {
         self.gyro_temp_data_rate = data_rate;
         self._gyro_temp_data_rate()
     }
@@ -1531,10 +1644,12 @@ impl<E, DEV, MODE> Mpu9250<DEV, MODE> where DEV: Device<Error = E>
         Ok(())
     }
 
-    fn _calibrate_at_rest<D>(&mut self,
-                             delay: &mut D)
-                             -> Result<[f32; 3], Error<E>>
-        where D: DelayNs
+    fn _calibrate_at_rest<D>(
+        &mut self,
+        delay: &mut D,
+    ) -> Result<[f32; 3], Error<E>>
+    where
+        D: DelayNs,
     {
         // First save current values, as we reset them below
         let orig_gyro_scale = self.gyro_scale;
@@ -1624,10 +1739,14 @@ impl<E, DEV, MODE> Mpu9250<DEV, MODE> where DEV: Device<Error = E>
         // Biases are additive, so change sign on
         // calculated average gyro biases
 
-        self.set_unscaled_gyro_bias(false,
-                                    [(gyro_biases[0] / -4) as i16,
-                                     (gyro_biases[1] / -4) as i16,
-                                     (gyro_biases[2] / -4) as i16])?;
+        self.set_unscaled_gyro_bias(
+            false,
+            [
+                (gyro_biases[0] / -4) as i16,
+                (gyro_biases[1] / -4) as i16,
+                (gyro_biases[2] / -4) as i16,
+            ],
+        )?;
 
         // Compute accelerometer biases to be returned
         let resolution = self.accel_scale.resolution();
@@ -1641,41 +1760,50 @@ impl<E, DEV, MODE> Mpu9250<DEV, MODE> where DEV: Device<Error = E>
         self.sample_rate_divisor = orig_sample_rate_divisor;
         self.init_mpu(delay)?;
 
-        Ok([accel_biases[0] as f32 * scale,
+        Ok([
+            accel_biases[0] as f32 * scale,
             accel_biases[1] as f32 * scale,
-            accel_biases[2] as f32 * scale])
+            accel_biases[2] as f32 * scale,
+        ])
     }
 
     /// Get unscaled gyroscope biases.
     /// Output format is +-1000dps
     fn get_unscaled_gyro_bias(&mut self) -> Result<[i16; 3], Error<E>> {
-        Ok([(self.dev.read(Register::XG_OFFSET_H)? as i16) << 8
-            | self.dev.read(Register::XG_OFFSET_L)? as i16,
+        Ok([
+            (self.dev.read(Register::XG_OFFSET_H)? as i16) << 8
+                | self.dev.read(Register::XG_OFFSET_L)? as i16,
             (self.dev.read(Register::YG_OFFSET_H)? as i16) << 8
-            | self.dev.read(Register::YG_OFFSET_L)? as i16,
+                | self.dev.read(Register::YG_OFFSET_L)? as i16,
             (self.dev.read(Register::ZG_OFFSET_H)? as i16) << 8
-            | self.dev.read(Register::ZG_OFFSET_L)? as i16])
+                | self.dev.read(Register::ZG_OFFSET_L)? as i16,
+        ])
     }
 
     /// Get scaled gyroscope biases.
     pub fn get_gyro_bias<T>(&mut self) -> Result<T, Error<E>>
-        where T: From<[f32; 3]>
+    where
+        T: From<[f32; 3]>,
     {
         let biases = self.get_unscaled_gyro_bias()?;
         let scale = GyroScale::_1000DPS.resolution();
 
-        Ok([biases[0] as f32 * scale,
+        Ok([
+            biases[0] as f32 * scale,
             biases[1] as f32 * scale,
-            biases[2] as f32 * scale].into())
+            biases[2] as f32 * scale,
+        ]
+        .into())
     }
 
     /// Set unscaled gyroscope biases.
     /// In relative mode it will add the new biases to the existing ones instead
     /// of replacing them. Input format is +-1000dps
-    fn set_unscaled_gyro_bias(&mut self,
-                              relative: bool,
-                              biases: [i16; 3])
-                              -> Result<(), Error<E>> {
+    fn set_unscaled_gyro_bias(
+        &mut self,
+        relative: bool,
+        biases: [i16; 3],
+    ) -> Result<(), Error<E>> {
         let mut new_biases = biases;
 
         if relative {
@@ -1686,14 +1814,20 @@ impl<E, DEV, MODE> Mpu9250<DEV, MODE> where DEV: Device<Error = E>
             }
         }
 
-        self.dev.write(Register::XG_OFFSET_H,
-                        ((new_biases[0] >> 8) & 0xFF) as u8)?;
+        self.dev.write(
+            Register::XG_OFFSET_H,
+            ((new_biases[0] >> 8) & 0xFF) as u8,
+        )?;
         self.dev.write(Register::XG_OFFSET_L, (new_biases[0] & 0xFF) as u8)?;
-        self.dev.write(Register::YG_OFFSET_H,
-                        ((new_biases[1] >> 8) & 0xFF) as u8)?;
+        self.dev.write(
+            Register::YG_OFFSET_H,
+            ((new_biases[1] >> 8) & 0xFF) as u8,
+        )?;
         self.dev.write(Register::YG_OFFSET_L, (new_biases[1] & 0xFF) as u8)?;
-        self.dev.write(Register::ZG_OFFSET_H,
-                        ((new_biases[2] >> 8) & 0xFF) as u8)?;
+        self.dev.write(
+            Register::ZG_OFFSET_H,
+            ((new_biases[2] >> 8) & 0xFF) as u8,
+        )?;
         self.dev.write(Register::ZG_OFFSET_L, (new_biases[2] & 0xFF) as u8)?;
 
         Ok(())
@@ -1702,52 +1836,65 @@ impl<E, DEV, MODE> Mpu9250<DEV, MODE> where DEV: Device<Error = E>
     /// Set scaled gyro biases.
     /// In relative mode it will add the new biases to the existing ones instead
     /// of replacing them.
-    pub fn set_gyro_bias<T>(&mut self,
-                            relative: bool,
-                            biases: T)
-                            -> Result<(), Error<E>>
-        where T: Into<[f32; 3]>
+    pub fn set_gyro_bias<T>(
+        &mut self,
+        relative: bool,
+        biases: T,
+    ) -> Result<(), Error<E>>
+    where
+        T: Into<[f32; 3]>,
     {
         let biases = biases.into();
         let scale = GyroScale::_1000DPS.resolution();
 
-        self.set_unscaled_gyro_bias(relative,
-                                    [(biases[0] / scale) as i16,
-                                     (biases[1] / scale) as i16,
-                                     (biases[2] / scale) as i16])
+        self.set_unscaled_gyro_bias(
+            relative,
+            [
+                (biases[0] / scale) as i16,
+                (biases[1] / scale) as i16,
+                (biases[2] / scale) as i16,
+            ],
+        )
     }
 
     /// Get unscaled accelerometer biases.
     /// Output format is +-16G
     fn get_unscaled_accel_bias(&mut self) -> Result<[i16; 3], Error<E>> {
-        Ok([(self.dev.read(Register::XA_OFFSET_H)? as i16) << 8
-            | self.dev.read(Register::XA_OFFSET_L)? as i16,
+        Ok([
+            (self.dev.read(Register::XA_OFFSET_H)? as i16) << 8
+                | self.dev.read(Register::XA_OFFSET_L)? as i16,
             (self.dev.read(Register::YA_OFFSET_H)? as i16) << 8
-            | self.dev.read(Register::YA_OFFSET_L)? as i16,
+                | self.dev.read(Register::YA_OFFSET_L)? as i16,
             (self.dev.read(Register::ZA_OFFSET_H)? as i16) << 8
-            | self.dev.read(Register::ZA_OFFSET_L)? as i16])
+                | self.dev.read(Register::ZA_OFFSET_L)? as i16,
+        ])
     }
 
     /// Get scaled accelerometer biases.
     pub fn get_accel_bias<T>(&mut self) -> Result<T, Error<E>>
-        where T: From<[f32; 3]>
+    where
+        T: From<[f32; 3]>,
     {
         let biases = self.get_unscaled_accel_bias()?;
         let scale = G * AccelScale::_16G.resolution();
 
-        Ok([biases[0] as f32 * scale,
+        Ok([
+            biases[0] as f32 * scale,
             biases[1] as f32 * scale,
-            biases[2] as f32 * scale].into())
+            biases[2] as f32 * scale,
+        ]
+        .into())
     }
 
     /// Set unscaled accelerometer biases.
     /// Keep in mind that the registers contain factory-supplied values after
     /// reset. In relative mode it will add the new biases to the existing
     /// ones instead of replacing them. Input format is +-16G.
-    fn set_unscaled_accel_bias(&mut self,
-                               relative: bool,
-                               biases: [i16; 3])
-                               -> Result<(), Error<E>> {
+    fn set_unscaled_accel_bias(
+        &mut self,
+        relative: bool,
+        biases: [i16; 3],
+    ) -> Result<(), Error<E>> {
         let mut new_biases = self.get_unscaled_accel_bias()?;
 
         // Do not touch the last bit
@@ -1758,14 +1905,20 @@ impl<E, DEV, MODE> Mpu9250<DEV, MODE> where DEV: Device<Error = E>
             new_biases[i] += biases[i] & !1;
         }
 
-        self.dev.write(Register::XA_OFFSET_H,
-                        ((new_biases[0] >> 8) & 0xFF) as u8)?;
+        self.dev.write(
+            Register::XA_OFFSET_H,
+            ((new_biases[0] >> 8) & 0xFF) as u8,
+        )?;
         self.dev.write(Register::XA_OFFSET_L, (new_biases[0] & 0xFF) as u8)?;
-        self.dev.write(Register::YA_OFFSET_H,
-                        ((new_biases[1] >> 8) & 0xFF) as u8)?;
+        self.dev.write(
+            Register::YA_OFFSET_H,
+            ((new_biases[1] >> 8) & 0xFF) as u8,
+        )?;
         self.dev.write(Register::YA_OFFSET_L, (new_biases[1] & 0xFF) as u8)?;
-        self.dev.write(Register::ZA_OFFSET_H,
-                        ((new_biases[2] >> 8) & 0xFF) as u8)?;
+        self.dev.write(
+            Register::ZA_OFFSET_H,
+            ((new_biases[2] >> 8) & 0xFF) as u8,
+        )?;
         self.dev.write(Register::ZA_OFFSET_L, (new_biases[2] & 0xFF) as u8)?;
 
         Ok(())
@@ -1775,31 +1928,41 @@ impl<E, DEV, MODE> Mpu9250<DEV, MODE> where DEV: Device<Error = E>
     /// Keep in mind that the registers contain factory-supplied values after
     /// reset. In relative mode it will add the new biases to the existing
     /// ones instead of replacing them.
-    pub fn set_accel_bias<T>(&mut self,
-                             relative: bool,
-                             biases: T)
-                             -> Result<(), Error<E>>
-        where T: Into<[f32; 3]>
+    pub fn set_accel_bias<T>(
+        &mut self,
+        relative: bool,
+        biases: T,
+    ) -> Result<(), Error<E>>
+    where
+        T: Into<[f32; 3]>,
     {
         let biases = biases.into();
         let scale = G * AccelScale::_16G.resolution();
 
-        self.set_unscaled_accel_bias(relative,
-                                     [(biases[0] / scale) as i16,
-                                      (biases[1] / scale) as i16,
-                                      (biases[2] / scale) as i16])
+        self.set_unscaled_accel_bias(
+            relative,
+            [
+                (biases[0] / scale) as i16,
+                (biases[1] / scale) as i16,
+                (biases[2] / scale) as i16,
+            ],
+        )
     }
 
     fn to_vector(&self, buffer: &[u8], offset: usize) -> [i16; 3] {
-        [((u16(buffer[offset + 1]) << 8) | u16(buffer[offset + 2])) as i16,
-         ((u16(buffer[offset + 3]) << 8) | u16(buffer[offset + 4])) as i16,
-         ((u16(buffer[offset + 5]) << 8) | u16(buffer[offset + 6])) as i16]
+        [
+            ((u16(buffer[offset + 1]) << 8) | u16(buffer[offset + 2])) as i16,
+            ((u16(buffer[offset + 3]) << 8) | u16(buffer[offset + 4])) as i16,
+            ((u16(buffer[offset + 5]) << 8) | u16(buffer[offset + 6])) as i16,
+        ]
     }
 
     fn to_vector_inverted(&self, buffer: &[u8], offset: usize) -> [i16; 3] {
-        [((u16(buffer[offset + 2]) << 8) + u16(buffer[offset + 1])) as i16,
-         ((u16(buffer[offset + 4]) << 8) + u16(buffer[offset + 3])) as i16,
-         ((u16(buffer[offset + 6]) << 8) + u16(buffer[offset + 5])) as i16]
+        [
+            ((u16(buffer[offset + 2]) << 8) + u16(buffer[offset + 1])) as i16,
+            ((u16(buffer[offset + 4]) << 8) + u16(buffer[offset + 3])) as i16,
+            ((u16(buffer[offset + 6]) << 8) + u16(buffer[offset + 5])) as i16,
+        ]
     }
 
     /// Reads the WHO_AM_I register; should return `0x71`
@@ -1827,8 +1990,10 @@ impl<DEV, MODE> Mpu9250<DEV, MODE> {
 }
 
 /// SPI mode
-pub const MODE: Mode = Mode { polarity: Polarity::IdleHigh,
-                              phase: Phase::CaptureOnSecondTransition };
+pub const MODE: Mode = Mode {
+    polarity: Polarity::IdleHigh,
+    phase: Phase::CaptureOnSecondTransition,
+};
 
 #[allow(dead_code)]
 #[allow(non_camel_case_types)]
