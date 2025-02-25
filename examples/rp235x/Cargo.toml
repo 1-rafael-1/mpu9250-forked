@@ -4,24 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [[example]]
-name = "basic_async"
-path = "src/basic_async.rs"
-
-[[example]]
-name = "dmp_features"
-path = "src/dmp_features.rs"
-
-[[example]]
-name = "fifo_buffer"
-path = "src/fifo_buffer.rs"
-
-[[example]]
-name = "quaternion"
-path = "src/quaternion.rs"
-
-[[example]]
-name = "motion_detection"
-path = "src/motion_detection.rs"
+name = "basic"
+path = "src/basic.rs"
 
 [dependencies]
 embassy-rp = { version = "0.3.1", features = [
